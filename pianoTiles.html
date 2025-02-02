@@ -8,34 +8,490 @@
 
   <!-- Include Tone.js via CDN -->
   <script src="https://cdn.jsdelivr.net/npm/tone@14.8.34/build/Tone.min.js"></script>
-  <script src="script.js" type="module"></script>
+  
+  <!-- DaisyUI + Tailwind -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.23/dist/full.min.css" rel="stylesheet" type="text/css" />
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* Style the piano tiles with a gradient and rounded corners */
+    .piano-tile {
+      /* We'll create this style in code by setting fillStyle to a gradient. */
+      border-radius: 10px; /* so the corners are curved visually */
+    }
+  </style>
 </head>
 <body>
   <div id="liveView" class="h-screen videoView flex justify-center items-center">
     <div class="flex flex-col justify-center items-center">
-      <h1 id="page-title" class="text-4xl mb-8">Piano Tiles</h1>
-      
-      <div id="side-menu" class="mb-2 flex gap-2 justify-center">
-        <button id="webcamButton" class="bg-green-700 w-40 p-2 rounded-2xl">Enable Webcam</span></button>
+      <div class="m-10"></div>
+      <h1 id="page-title" class="text-4xl mb-6 mt-10">Piano Tiles</h1>
+
+      <!-- SCORE & LIVES with Heroicons -->
+      <div class="mb-4 flex gap-6">
+        <!-- Score Display -->
+        <span id="scoreDisplay" class="text-xl font-bold flex items-center gap-1">
+          <!-- Star icon from Heroicons (24px) -->
+          <svg xmlns="http://www.w3.org/2000/svg" fill="yellow" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345
+                     l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385
+                     a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54
+                     a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557
+                     l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+          </svg>          
+          Score: 0
+        </span>
+
+        <!-- Lives Display -->
+        <span id="livesDisplay" class="text-xl font-bold flex items-center gap-1">
+          <!-- Heart icon from Heroicons (24px) -->
+          <svg xmlns="http://www.w3.org/2000/svg" fill="red" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5
+                     -1.935 0-3.597 1.126-4.312 2.733
+                     -.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25
+                     c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+          </svg>
+          Lives: 10
+        </span>
       </div>
 
-      <!-- WEBCAM -->
+      <!-- Difficulty Dropdown -->
+      <div class="mb-4">
+        <label for="difficultySelect" class="font-semibold mr-2">Difficulty:</label>
+        <select id="difficultySelect" class="select select-bordered">
+          <option value="easy">Easy</option>
+          <option value="medium" selected>Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
+
+      <!-- Enable Webcam Button -->
+      <div id="side-menu" class="mb-2 flex gap-2 justify-center">
+        <button id="webcamButton" class="bg-green-700 w-40 p-2 rounded-2xl">Start</button>
+      </div>
+
+      <!-- WEBCAM & CANVAS -->
       <div class="w-[40rem] h-[30rem] bg-slate-200">
         <div style="position: relative;">
           <video id="webcam" style="position: abso" autoplay playsinline></video>
-          <canvas class="output_canvas" id="output_canvas" style="position: absolute; left: 0px; top: 0px;"></canvas>
+          <canvas class="output_canvas"
+                  id="output_canvas"
+                  style="position: absolute; left: 0px; top: 0px;">
+          </canvas>
         </div>
       </div>
 
       <!-- BOTTOM FEATURE OPTIONS -->
       <div class="mt-10">
         <span>Other Fun Games:</span>
-        <button id="fingerTuneButton" class="border hover:bg-sky-500 p-2 rounded-2xl"><a href="index.html">Finger Tune</a></button>
-        <button id="handDanceOffButton" class="border hover:bg-sky-500 p-2 rounded-2xl"><a href="handDanceOff.html">Hand Dance Off</a></button>
+        <button id="fingerTuneButton" class="border hover:bg-sky-500 p-2 rounded-2xl">
+          <a href="index.html">Finger Tune</a>
+        </button>
+        <button id="handDanceOffButton" class="border hover:bg-sky-500 p-2 rounded-2xl">
+          <a href="handDanceOff.html">Hand Dance Off</a>
+        </button>
       </div>
-
     </div>
   </div>
+
+  <script type="module">
+    import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+
+    // ============================
+    // Songs & Difficulty Settings
+    // ============================
+    const SONG_EASY = ["C4", "C4", "G4", "G4", "A4", "A4", "G4"];
+    const SONG_MEDIUM = [
+      "C4", "E4", "G4", "C5",
+      "B4", "G4", "E4", "C4",
+      "D4", "F4", "A4", "D5",
+      "C5", "A4", "F4", "D4"
+    ];
+    const SONG_HARD = [
+      "C4", "E4", "G4", "B4",
+      "C5", "A4", "F4", "D4",
+      "G5", "B4", "G4", "E5",
+      "C5", "B4", "A4", "F4"
+    ];
+
+    const DIFFICULTY_CONFIG = {
+      easy: {
+        songNotes: SONG_EASY,
+        spawnInterval: 800,  // slower spawn
+        tileSpeed: 3         // slower falling
+      },
+      medium: {
+        songNotes: SONG_MEDIUM,
+        spawnInterval: 500,
+        tileSpeed: 6
+      },
+      hard: {
+        songNotes: SONG_HARD,
+        spawnInterval: 300,  // faster spawn
+        tileSpeed: 8         // faster falling
+      }
+    };
+
+    // ========================
+    // Setup & Global Variables
+    // ========================
+    let handLandmarker = undefined;
+    let runningMode = "IMAGE";
+    let webcamRunning = false;
+
+    // Tone.js
+    let audioStarted = false;
+    let synth;
+
+    // Score & Lives
+    let score = 0;
+    let lives = 10;
+    const scoreDisplay = document.getElementById("scoreDisplay");
+    const livesDisplay = document.getElementById("livesDisplay");
+
+    // Tiles / Song Management
+    let tiles = [];
+    let lastSpawnTime = 0;
+    let currentSong = [];       // which array of notes
+    let spawnInterval = 500;    // how often to spawn a tile
+    let tileSpeed = 6;          // how fast they fall
+    let nextNoteIndex = 0;      // index into the currentSong
+
+    // We'll use only these fingertips for tile collision
+    const fingerTipIndices = [4, 8, 12];
+
+    // DOM Elements
+    const difficultySelect = document.getElementById("difficultySelect");
+    const enableWebcamButton = document.getElementById("webcamButton");
+    const video = document.getElementById("webcam");
+    const canvasElement = document.getElementById("output_canvas");
+    const canvasCtx = canvasElement.getContext("2d");
+
+    // =====================
+    // Create HandLandmarker
+    // =====================
+    async function createHandLandmarker() {
+      const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+      );
+
+      handLandmarker = await HandLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath:
+            "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+          delegate: "GPU"
+        },
+        runningMode: runningMode,
+        numHands: 1
+      });
+    }
+    createHandLandmarker();
+
+    // =========================
+    // Webcam + Prediction Setup
+    // =========================
+    enableWebcamButton.addEventListener("click", enableCam);
+
+    async function enableCam() {
+      if (!handLandmarker) {
+        console.log("Wait! HandLandmarker not loaded yet.");
+        return;
+      }
+      webcamRunning = !webcamRunning;
+
+      // Start audio + create synth if not done yet
+      if (webcamRunning && !audioStarted) {
+        await Tone.start(); // must be in a user gesture
+        audioStarted = true;
+        synth = new Tone.PolySynth(Tone.Synth).toDestination();
+      }
+
+      // If turning off, stop stream
+      if (!webcamRunning && video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+        return;
+      }
+
+      // Get the selected difficulty from the dropdown
+      const difficulty = difficultySelect.value; // "easy", "medium", or "hard"
+      // Apply that difficulty's config
+      const config = DIFFICULTY_CONFIG[difficulty];
+      currentSong = config.songNotes;
+      spawnInterval = config.spawnInterval;
+      tileSpeed = config.tileSpeed;
+
+      // Reset score/lives & tile data
+      resetGame();
+
+      // Start webcam
+      const constraints = { video: true };
+      if (webcamRunning) {
+        navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
+          video.srcObject = stream;
+          video.addEventListener("loadeddata", predictWebcam);
+
+          // Hide the button once we start
+          enableWebcamButton.style.display = "none";
+        });
+      }
+    }
+
+    let lastVideoTime = -1;
+    let results = undefined;
+
+    // =================
+    // Main loop
+    // =================
+    async function predictWebcam() {
+      canvasElement.width = video.videoWidth;
+      canvasElement.height = video.videoHeight;
+
+      if (runningMode === "IMAGE") {
+        runningMode = "VIDEO";
+        await handLandmarker.setOptions({ runningMode: "VIDEO" });
+      }
+
+      const startTimeMs = performance.now();
+      if (lastVideoTime !== video.currentTime) {
+        lastVideoTime = video.currentTime;
+        // Detect hands
+        results = handLandmarker.detectForVideo(video, startTimeMs);
+      }
+
+      // Clear & mirror the webcam
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+      canvasCtx.translate(canvasElement.width, 0);
+      canvasCtx.scale(-1, 1);
+      canvasCtx.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+      canvasCtx.restore();
+
+      // Spawn, update, draw tiles
+      spawnTilesIfNeeded();
+      updateTiles();
+      drawTiles();
+
+      // Draw landmarks & check collisions
+      if (results.landmarks) {
+        for (const landmarks of results.landmarks) {
+          drawAllLandmarksMirrored(landmarks);
+          checkTileCollisionsMirrored(landmarks);
+        }
+      }
+
+      // Continue if webcam is on
+      if (webcamRunning) {
+        window.requestAnimationFrame(predictWebcam);
+      }
+    }
+
+    // ====================
+    // Tiles Logic
+    // ====================
+    function spawnTilesIfNeeded() {
+      const now = performance.now();
+      if (now - lastSpawnTime >= spawnInterval) {
+        spawnTile(nextNoteIndex);
+        nextNoteIndex = (nextNoteIndex + 1) % currentSong.length;
+        lastSpawnTime = now;
+      }
+    }
+
+    function spawnTile(noteIndex) {
+      const tileWidth = canvasElement.width / 4;
+      const tileHeight = 70; // slightly taller
+      // Random column [0..3]
+      const col = Math.floor(Math.random() * 4);
+      const x = col * tileWidth;
+
+      tiles.push({
+        x: x,
+        y: -tileHeight,
+        width: tileWidth,
+        height: tileHeight,
+        noteIndex: noteIndex
+      });
+    }
+
+    function updateTiles() {
+      for (let tile of tiles) {
+        tile.y += tileSpeed; // move down
+      }
+      // Remove tiles that cross the bottom => lose a life
+      tiles = tiles.filter((tile) => {
+        if (tile.y >= canvasElement.height) {
+          lives--;
+          updateLivesDisplay();
+
+          if (lives <= 0) {
+            gameOver();
+          }
+          return false; // remove
+        }
+        return true; // keep
+      });
+    }
+
+    function drawTiles() {
+      for (let tile of tiles) {
+        const note = currentSong[tile.noteIndex];
+
+        // We'll create a vertical gradient for the tile
+        const grad = canvasCtx.createLinearGradient(
+          tile.x, tile.y, tile.x, tile.y + tile.height
+        );
+        // Start color -> dark gray, end color -> black
+        grad.addColorStop(0, "#3f3f3f"); 
+        grad.addColorStop(1, "#000000");
+
+        canvasCtx.fillStyle = grad;
+        // To visualize the rounded corners, we can do a path:
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(tile.x + 10, tile.y); // top-left corner with radius
+        canvasCtx.lineTo(tile.x + tile.width - 10, tile.y);
+        canvasCtx.quadraticCurveTo(
+          tile.x + tile.width, tile.y,
+          tile.x + tile.width, tile.y + 10
+        );
+        canvasCtx.lineTo(tile.x + tile.width, tile.y + tile.height - 10);
+        canvasCtx.quadraticCurveTo(
+          tile.x + tile.width, tile.y + tile.height,
+          tile.x + tile.width - 10, tile.y + tile.height
+        );
+        canvasCtx.lineTo(tile.x + 10, tile.y + tile.height);
+        canvasCtx.quadraticCurveTo(
+          tile.x, tile.y + tile.height,
+          tile.x, tile.y + tile.height - 10
+        );
+        canvasCtx.lineTo(tile.x, tile.y + 10);
+        canvasCtx.quadraticCurveTo(
+          tile.x, tile.y,
+          tile.x + 10, tile.y
+        );
+        canvasCtx.closePath();
+        canvasCtx.fill();
+
+        // Note text: bigger & bolder
+        canvasCtx.font = "bold 22px Arial";
+        canvasCtx.fillStyle = "white";
+        canvasCtx.textAlign = "center";
+        canvasCtx.textBaseline = "middle";
+        canvasCtx.fillText(
+          note,
+          tile.x + tile.width / 2,
+          tile.y + tile.height / 2
+        );
+      }
+    }
+
+    // ====================
+    // Collision & Landmarks
+    // ====================
+    function checkTileCollisionsMirrored(landmarks) {
+      // Fingertip positions (mirroring X)
+      const fingertipPositions = fingerTipIndices.map((idx) => {
+        const pt = landmarks[idx];
+        if (!pt) return null;
+        const mirroredX = (1 - pt.x) * canvasElement.width;
+        const mirroredY = pt.y * canvasElement.height;
+        return { x: mirroredX, y: mirroredY };
+      }).filter((p) => p !== null);
+
+      for (let i = 0; i < tiles.length; i++) {
+        const tile = tiles[i];
+        let tileHit = false;
+
+        for (const tip of fingertipPositions) {
+          if (
+            tip.x >= tile.x && tip.x <= tile.x + tile.width &&
+            tip.y >= tile.y && tip.y <= tile.y + tile.height
+          ) {
+            // Collision => remove tile, play note, increment score
+            const note = currentSong[tile.noteIndex];
+            synth.triggerAttackRelease(note, "8n", Tone.now());
+
+            score++;
+            updateScoreDisplay();
+
+            tiles.splice(i, 1);
+            i--;
+            tileHit = true;
+            break;
+          }
+        }
+        if (tileHit) continue;
+      }
+    }
+
+    function drawAllLandmarksMirrored(landmarks) {
+      canvasCtx.fillStyle = "#FF0000";
+      for (let i = 0; i < landmarks.length; i++) {
+        const px = (1 - landmarks[i].x) * canvasElement.width;
+        const py = landmarks[i].y * canvasElement.height;
+        canvasCtx.beginPath();
+        canvasCtx.arc(px, py, 5, 0, 2 * Math.PI);
+        canvasCtx.fill();
+      }
+    }
+
+    // ====================
+    // Score / Lives / Reset
+    // ====================
+    function updateScoreDisplay() {
+      scoreDisplay.innerHTML = `
+ <svg xmlns="http://www.w3.org/2000/svg" fill="yellow" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+  <path stroke-linecap="round" stroke-linejoin="round"
+        d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345
+           l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557
+           l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0
+           L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557
+           l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345
+           L11.48 3.5Z" />
+</svg>
+        Score: ${score}
+      `;
+    }
+
+    function updateLivesDisplay() {
+      livesDisplay.innerHTML = `
+ <svg xmlns="http://www.w3.org/2000/svg" fill="red" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+  <path stroke-linecap="round" stroke-linejoin="round"
+        d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5
+           -1.935 0-3.597 1.126-4.312 2.733
+           -.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25
+           c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+</svg>
+        Lives: ${lives}
+      `;
+    }
+
+    function resetGame() {
+      score = 0;
+      lives = 10;
+      tiles = [];
+      nextNoteIndex = 0;
+      lastSpawnTime = 0;
+      updateScoreDisplay();
+      updateLivesDisplay();
+    }
+
+    function gameOver() {
+      alert(`Game Over! Final Score: ${score}`);
+      webcamRunning = false;
+
+      // Stop camera
+      if (video.srcObject) {
+        video.srcObject.getTracks().forEach((track) => track.stop());
+        video.srcObject = null;
+      }
+
+      // Show enable webcam button again
+      enableWebcamButton.style.display = "inline-block";
+    }
+  </script>
 </body>
+</html>
