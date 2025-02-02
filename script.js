@@ -49,30 +49,44 @@ if (hasGetUserMedia()) {
 else {
     console.warn("getUserMedia() is not supported by your browser");
 }
+
+let currentStream = null; // Store the webcam stream here
+
 // Enable the live webcam view and start detection.
 function enableCam(event) {
     if (!handLandmarker) {
         console.log("Wait! objectDetector not loaded yet.");
         return;
     }
+
+    webcamRunning = !webcamRunning;
+
     if (webcamRunning === true) {
-        webcamRunning = false;
-        enableWebcamButton.innerText = "ENABLE PREDICTIONS";
+        enableWebcamButton.innerText = "DISABLE WEBCAM";
+        // GetUserMedia parameters.
+        const constraints = {
+            video: true
+        };
+        // Activate the webcam stream.
+        navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
+            currentStream = stream;  // Store the stream here
+            video.srcObject = stream;
+            video.addEventListener("loadeddata", predictWebcam);
+        }).catch((err) => {
+            console.error("Error accessing webcam: ", err);
+        });
+    } else {
+        enableWebcamButton.innerText = "ENABLE WEBCAM";
+        // Stop the webcam stream.
+        if (currentStream) {
+            const tracks = currentStream.getTracks(); // Get all tracks (video, audio)
+            tracks.forEach(track => track.stop());  // Stop each track
+            video.srcObject = null; // Clear video source
+            currentStream = null; // Reset the stream variable
+        }
     }
-    else {
-        webcamRunning = true;
-        enableWebcamButton.innerText = "DISABLE PREDICTIONS";
-    }
-    // getUsermedia parameters.
-    const constraints = {
-        video: true
-    };
-    // Activate the webcam stream.
-    navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
-        video.srcObject = stream;
-        video.addEventListener("loadeddata", predictWebcam);
-    });
 }
+
 let lastVideoTime = -1;
 let results = undefined;
 console.log(video);
