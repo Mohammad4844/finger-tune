@@ -1,8 +1,6 @@
 import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
 const demosSection = document.getElementById("demos");
-const musicStyle = document.getElementById("music-style");
-const soundDensity = document.getElementById("soundDensity")
 
 let handLandmarker = undefined;
 let runningMode = "IMAGE";
@@ -17,34 +15,18 @@ let synth; // PolySynth to allow multiple notes together
 
 // A scale array with 15 notes; we'll give each finger 5 of these
 // (Adjust to any notes/scale you like)
-// const bigScale = [
-//     "C4", "D4", "E4", "F4", "G4",
-//     "A4", "B4", "C5", "D5", "E5",
-//     "F5", "G5", "A5", "B5", "C6"
-// ];
 const bigScale = [
     "C4", "D4", "E4", "F4", "G4",
     "A4", "B4", "C5", "D5", "E5",
-    "F5", "G5", "A5", "B5", "C6",
-    "D6", "E6", "F6", "G6", "A6", 
-    "B6", "C7", "D7", "E7", "F7",
-    "G7", "A7", "B7", "C8", "D8"
+    "F5", "G5", "A5", "B5", "C6"
 ];
 
-
-let currentDensity = 3; // Default value
-soundDensity.addEventListener('change', updateSoundDensity);
-function updateSoundDensity() {
-    currentDensity = parseInt(soundDensity.value, 10);
-}
-
-
 // Only track these three fingertips: thumb (4), index (8), middle (12)
-const fingerTipIndices = [4, 8, 12, 16, 20];
+const fingerTipIndices = [4, 8, 12];
 
 // Track last trigger time and last note index for each fingertip
-let fingerLastTriggerTime = { 4: 0, 8: 0, 12: 0, 16: 0, 20: 0 };
-let fingerLastNoteIndex   = { 4: -1, 8: -1, 12: -1, 16: -1, 20: 0 };
+let fingerLastTriggerTime = { 4: 0, 8: 0, 12: 0 };
+let fingerLastNoteIndex   = { 4: -1, 8: -1, 12: -1 };
 const minNoteInterval = 0.25; // 250ms minimum gap per finger
 
 /**
@@ -85,6 +67,50 @@ if (hasGetUserMedia()) {
 } else {
     console.warn("getUserMedia() is not supported by your browser");
 }
+
+/**
+ * Enable/disable the live webcam and start detection
+ */
+// async function enableCam() {
+//   if (!handLandmarker) {
+//     console.log("Wait! HandLandmarker not loaded yet.");
+//     return;
+//   }
+
+//   webcamRunning = !webcamRunning;
+//   enableWebcamButton.innerText = webcamRunning
+//     ? "DISABLE PREDICTIONS"
+//     : "ENABLE PREDICTIONS";
+
+//   // When turning predictions on, start the audio context + create the synth
+//   if (webcamRunning && !audioStarted) {
+//     await Tone.start(); // must be called in a user gesture
+//     audioStarted = true;
+
+//     // Create a polyphonic synth so multiple notes can overlap
+//     synth = new Tone.PolySynth(Tone.Synth, {
+//       oscillator: { type: "triangle" },
+//       envelope: { attack: 0.05, decay: 0.2, sustain: 0.4, release: 0.8 }
+//     }).toDestination();
+//   }
+
+//   // If turning predictions off, stop the video stream
+//   if (!webcamRunning && video.srcObject) {
+//     video.srcObject.getTracks().forEach(track => track.stop());
+//     video.srcObject = null;
+//   }
+
+//   // getUsermedia parameters
+//   const constraints = { video: true };
+
+//   // Activate the webcam stream if enabling
+//   if (webcamRunning) {
+//     navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
+//       video.srcObject = stream;
+//       video.addEventListener("loadeddata", predictWebcam);
+//     });
+//   }
+// }
 
 async function enableCam() {
     if (!handLandmarker) {
@@ -189,8 +215,7 @@ function handleFingertipMusic(fingertip, tipIndex, fingerArrayIndex) {
 
     // Each finger gets a subrange of bigScale. 
     // If we have 15 notes total and 3 fingers, each can have 5 notes.
-    // const notesPerFinger = 5;
-    const notesPerFinger = currentDensity; // Dynamically adjust based on sound density
+    const notesPerFinger = 5;
     const startIndex = fingerArrayIndex * notesPerFinger;
     let endIndex = startIndex + notesPerFinger - 1;
     
@@ -216,20 +241,18 @@ function handleFingertipMusic(fingertip, tipIndex, fingerArrayIndex) {
     }
 }
 
-/*
- * Only draw the fingertips based on the current soundDensity.
+/**
+ * Only draw the three fingertip landmarks [4, 8, 12].
  */
 function drawSelectedFingertips(landmarks) {
-    // Loop through the number of fingertips to draw, based on the current sound density
-    for (let i = 0; i < Math.min(currentDensity, fingerTipIndices.length); i++) {
-        const tipIndex = fingerTipIndices[i];
+    for (const tipIndex of fingerTipIndices) {
         const point = landmarks[tipIndex];
         if (point) {
             canvasCtx.beginPath();
             canvasCtx.arc(
-                point.x * canvasElement.width,
-                point.y * canvasElement.height,
-                5, 0, 2 * Math.PI
+            point.x * canvasElement.width,
+            point.y * canvasElement.height,
+            5, 0, 2 * Math.PI
             );
             canvasCtx.fillStyle = "#FF0000";
             canvasCtx.fill();

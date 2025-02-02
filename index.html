@@ -11,15 +11,7 @@
   <script src="script.js" type="module"></script>
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.23/dist/full.min.css" rel="stylesheet" type="text/css" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- <style>
-    #demos.invisible {
-      display: none;
-    }
-    #output_canvas {
-      border: 1px solid black;
-      max-width: 80vw;
-    }
-  </style> -->
+
 </head>
 <body>
   <div id="liveView" class="h-screen videoView flex justify-center items-center">
@@ -30,13 +22,23 @@
       <div id="side-menu" class="mb-2 flex gap-2 justify-center">
         <div id="music-style-dropdown" class="mb-2">
           <label for="music-style">Music Style:</label>
-          <select id="music-style" name="fruits" class="p-1 border rounded-2xl">
+          <select id="music-style" name="music-style" class="p-1 border rounded-2xl">
             <option value="rock">Rock</option>
             <option value="country">Country</option>
           </select>
         </div>
+        <div id="soundDensityDropdown" class="mb-2">
+          <label for="soundDensity">Sound Density:</label>
+          <select id="soundDensity" name="soundDensity" class="p-1 border rounded-2xl">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </div>
         <button id="webcamButton" class="bg-green-700 w-40 p-1 rounded-2xl">Enable Webcam</span></button>
-        <button class="bg-green-700 p-2 rounded-2xl">Start Record</button>
+        <!-- <button class="bg-green-700 p-2 rounded-2xl">Start Record</button> -->
       </div>
 
       <!-- WEBCAM -->
