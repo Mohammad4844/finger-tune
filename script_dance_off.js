@@ -170,6 +170,31 @@ let comboMessage = "";      // the string to display (e.g., "3 COMBO!")
 let comboStartTime = 0;     // when we started showing the combo
 const COMBO_DISPLAY_TIME = 2000;  // how long to display combo text (ms)
 
+// Trail system for finger movements
+const TRAIL_LENGTH = 20; // Number of positions to keep in trail
+const TRAIL_FADE_TIME = 800; // Time in ms for trail to fade out
+let fingerTrails = {};
+
+const FINGER_COLORS = {
+    4: { color: '#FF0000', name: 'red' },        // Thumb - Red
+    8: { color: '#00FF00', name: 'green' },      // Index - Green
+    12: { color: '#0000FF', name: 'blue' },      // Middle - Blue
+    16: { color: '#FFFF00', name: 'yellow' },    // Ring - Yellow
+    20: { color: '#FF00FF', name: 'magenta' }    // Pinky - Magenta
+};
+
+// Initialize trails for each finger tip for both hands
+function initializeTrails() {
+    ['hand0', 'hand1'].forEach(hand => {
+        fingerTrails[hand] = {};
+        fingerTipIndices.forEach(tipIndex => {
+            fingerTrails[hand][tipIndex] = [];
+        });
+    });
+}
+initializeTrails();
+
+
 debugLog('DOM', 'Video and canvas elements initialized', {
     video: !!video,
     canvas: !!canvasElement,
@@ -190,20 +215,19 @@ if (hasGetUserMedia()) {
 }
 
 function handleGameStart() {
-  debugLog('Game', 'handleGameStart called');
-  gameActive = !gameActive;
-  debugLog('Game', `Game state changed to: ${gameActive ? 'active' : 'inactive'}`);
-  
-  // Add this line to explicitly check the game state
-  console.log('Game state:', gameActive);
-  
-  if (gameActive) {
-      debugLog('Game', 'Calling startGame function');
-      startGame();
-  } else {
-      debugLog('Game', 'Calling stopGame function');
-      stopGame();
-  }
+    debugLog('Game', 'handleGameStart called');
+    gameActive = !gameActive;
+    debugLog('Game', `Game state changed to: ${gameActive ? 'active' : 'inactive'}`);
+    
+    resetTrails();
+    
+    if (gameActive) {
+        debugLog('Game', 'Calling startGame function');
+        startGame();
+    } else {
+        debugLog('Game', 'Calling stopGame function');
+        stopGame();
+    }
 }
 
 // Background music handling
@@ -673,24 +697,114 @@ function handleFingertipMusic(fingertip, tipIndex, fingerArrayIndex) {
     }
 }
 
+// Initialize trails for each finger tip
+fingerTipIndices.forEach(tipIndex => {
+    fingerTrails[tipIndex] = [];
+});
+
+// Update the drawSelectedFingertips function to include trails
 function drawSelectedFingertips(landmarks) {
     canvasCtx.save();  // Save current state
     canvasCtx.scale(-1, 1);  // Flip the context
     canvasCtx.translate(-canvasElement.width, 0);  // Translate back
 
+    const currentTime = performance.now();
+
+    // Draw trails for the current hand's landmarks
+    const handIndex = results.landmarks.indexOf(landmarks);
+    const handKey = `hand${handIndex}`;
+
+    // Update and draw trails for each fingertip of this hand
     for (const tipIndex of fingerTipIndices) {
         const point = landmarks[tipIndex];
+        const fingerColor = FINGER_COLORS[tipIndex].color;
+        
         if (point) {
+            // Add new position to trail
+            fingerTrails[handKey][tipIndex].push({
+                x: point.x * canvasElement.width,
+                y: point.y * canvasElement.height,
+                timestamp: currentTime
+            });
+
+            // Remove old positions
+            fingerTrails[handKey][tipIndex] = fingerTrails[handKey][tipIndex]
+                .filter(pos => currentTime - pos.timestamp < TRAIL_FADE_TIME)
+                .slice(-TRAIL_LENGTH);
+
+            // Draw trail
+            if (fingerTrails[handKey][tipIndex].length > 1) {
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(
+                    fingerTrails[handKey][tipIndex][0].x,
+                    fingerTrails[handKey][tipIndex][0].y
+                );
+
+                // Draw curved line through trail points
+                for (let i = 1; i < fingerTrails[handKey][tipIndex].length; i++) {
+                    const point = fingerTrails[handKey][tipIndex][i];
+                    const prevPoint = fingerTrails[handKey][tipIndex][i - 1];
+                    
+                    // Calculate control points for smooth curve
+                    const ctrl = {
+                        x: (prevPoint.x + point.x) / 2,
+                        y: (prevPoint.y + point.y) / 2
+                    };
+                    
+                    canvasCtx.quadraticCurveTo(
+                        prevPoint.x,
+                        prevPoint.y,
+                        ctrl.x,
+                        ctrl.y
+                    );
+                }
+
+                // Create gradient for trail using finger color
+                const gradient = canvasCtx.createLinearGradient(
+                    fingerTrails[handKey][tipIndex][0].x,
+                    fingerTrails[handKey][tipIndex][0].y,
+                    fingerTrails[handKey][tipIndex][fingerTrails[handKey][tipIndex].length - 1].x,
+                    fingerTrails[handKey][tipIndex][fingerTrails[handKey][tipIndex].length - 1].y
+                );
+
+                // Convert hex color to rgba for gradient
+                const rgbaColor = hexToRGBA(fingerColor);
+                gradient.addColorStop(0, rgbaColor(0));    // Fully transparent
+                gradient.addColorStop(1, rgbaColor(0.5));  // Semi-transparent
+
+                canvasCtx.strokeStyle = gradient;
+                canvasCtx.lineWidth = 3;
+                canvasCtx.lineCap = 'round';
+                canvasCtx.lineJoin = 'round';
+                canvasCtx.stroke();
+            }
+
+            // Draw current fingertip with solid color
             canvasCtx.beginPath();
             canvasCtx.arc(
                 point.x * canvasElement.width,
                 point.y * canvasElement.height,
                 5, 0, 2 * Math.PI
             );
-            canvasCtx.fillStyle = "#FF0000";
+            canvasCtx.fillStyle = fingerColor;
             canvasCtx.fill();
         }
     }
 
     canvasCtx.restore();  // Restore unflipped state
+}
+
+// Helper function to convert hex color to rgba
+function hexToRGBA(hex) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return (alpha) => `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// Reset trails when game starts or stops
+function resetTrails() {
+    fingerTipIndices.forEach(tipIndex => {
+        fingerTrails[tipIndex] = [];
+    });
 }
