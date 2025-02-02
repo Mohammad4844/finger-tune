@@ -1,6 +1,8 @@
 import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
 const demosSection = document.getElementById("demos");
+const musicStyle = document.getElementById("music-style");
+const soundDensity = document.getElementById("soundDensity")
 
 let handLandmarker = undefined;
 let runningMode = "IMAGE";
@@ -13,20 +15,63 @@ let webcamRunning = false;
 let audioStarted = false; 
 let synth; // PolySynth to allow multiple notes together
 
-// A scale array with 15 notes; we'll give each finger 5 of these
-// (Adjust to any notes/scale you like)
+// Default to PolySynth
+synth = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.05, decay: 0.2, sustain: 0.4, release: 0.8 }
+}).toDestination();
+
+// Event listener for music style changes
+musicStyle.addEventListener("change", (event) => {
+    const selectedStyle = event.target.value;
+    switch (selectedStyle) {
+        case "polySynth":
+            synth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "triangle" },
+                envelope: { attack: 0.05, decay: 0.2, sustain: 0.4, release: 0.8 }
+            }).toDestination();
+            break;
+        case "synth":
+            synth = new Tone.Synth({
+                oscillator: { type: "square" },
+                envelope: { attack: 0.1, decay: 0.2, sustain: 0.3, release: 1.0 }
+            }).toDestination();
+            break;
+        case "duoSynth":
+            synth = new Tone.DuoSynth().toDestination();
+            break;
+        case "membraneSynth":
+            synth = new Tone.MembraneSynth().toDestination();
+            break;
+        default:
+            synth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "triangle" },
+                envelope: { attack: 0.05, decay: 0.2, sustain: 0.4, release: 0.8 }
+            }).toDestination();
+    }
+});
+
 const bigScale = [
     "C4", "D4", "E4", "F4", "G4",
     "A4", "B4", "C5", "D5", "E5",
-    "F5", "G5", "A5", "B5", "C6"
+    "F5", "G5", "A5", "B5", "C6",
+    "D6", "E6", "F6", "G6", "A6", 
+    "B6", "C7", "D7", "E7", "F7",
+    "G7", "A7", "B7", "C8", "D8"
 ];
 
+let currentDensity = 3;
+soundDensity.addEventListener('change', updateSoundDensity);
+function updateSoundDensity() {
+    currentDensity = parseInt(soundDensity.value, 10);
+}
+
 // Only track these three fingertips: thumb (4), index (8), middle (12)
-const fingerTipIndices = [4, 8, 12];
+const fingerTipIndices = [4, 8, 12, 16, 20];
 
 // Track last trigger time and last note index for each fingertip
-let fingerLastTriggerTime = { 4: 0, 8: 0, 12: 0 };
-let fingerLastNoteIndex   = { 4: -1, 8: -1, 12: -1 };
+let fingerLastTriggerTime = { 4: 0, 8: 0, 12: 0, 16: 0, 20: 0 };
+let fingerLastNoteIndex   = { 4: -1, 8: -1, 12: -1, 16: -1, 20: 0 };
 const minNoteInterval = 0.25; // 250ms minimum gap per finger
 
 /**
@@ -67,50 +112,6 @@ if (hasGetUserMedia()) {
 } else {
     console.warn("getUserMedia() is not supported by your browser");
 }
-
-/**
- * Enable/disable the live webcam and start detection
- */
-// async function enableCam() {
-//   if (!handLandmarker) {
-//     console.log("Wait! HandLandmarker not loaded yet.");
-//     return;
-//   }
-
-//   webcamRunning = !webcamRunning;
-//   enableWebcamButton.innerText = webcamRunning
-//     ? "DISABLE PREDICTIONS"
-//     : "ENABLE PREDICTIONS";
-
-//   // When turning predictions on, start the audio context + create the synth
-//   if (webcamRunning && !audioStarted) {
-//     await Tone.start(); // must be called in a user gesture
-//     audioStarted = true;
-
-//     // Create a polyphonic synth so multiple notes can overlap
-//     synth = new Tone.PolySynth(Tone.Synth, {
-//       oscillator: { type: "triangle" },
-//       envelope: { attack: 0.05, decay: 0.2, sustain: 0.4, release: 0.8 }
-//     }).toDestination();
-//   }
-
-//   // If turning predictions off, stop the video stream
-//   if (!webcamRunning && video.srcObject) {
-//     video.srcObject.getTracks().forEach(track => track.stop());
-//     video.srcObject = null;
-//   }
-
-//   // getUsermedia parameters
-//   const constraints = { video: true };
-
-//   // Activate the webcam stream if enabling
-//   if (webcamRunning) {
-//     navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
-//       video.srcObject = stream;
-//       video.addEventListener("loadeddata", predictWebcam);
-//     });
-//   }
-// }
 
 async function enableCam() {
     if (!handLandmarker) {
@@ -210,12 +211,77 @@ async function predictWebcam() {
 /**
  * Convert fingertip.x -> a note in `bigScale`, subdivided among 3 fingers.
  */
-function handleFingertipMusic(fingertip, tipIndex, fingerArrayIndex) {
+// function handleFingertipMusic(fingertip, tipIndex, fingerArrayIndex) {
+//     const now = Tone.now();
+
+//     // Each finger gets a subrange of bigScale. 
+//     // If we have 15 notes total and 3 fingers, each can have 5 notes.
+//     // const notesPerFinger = 5;
+//     const notesPerFinger = currentDensity; // Dynamically adjust based on sound density
+//     const startIndex = fingerArrayIndex * notesPerFinger;
+//     let endIndex = startIndex + notesPerFinger - 1;
+    
+//     if (endIndex >= bigScale.length) {
+//         endIndex = bigScale.length - 1;
+//     }
+//     const fingerScale = bigScale.slice(startIndex, endIndex + 1);
+
+//     // Map fingertip.x [0..1] -> index in fingerScale
+//     let noteIdx = Math.floor(fingertip.x * fingerScale.length);
+//     if (noteIdx < 0) noteIdx = 0;
+//     if (noteIdx >= fingerScale.length) noteIdx = fingerScale.length - 1;
+
+//     // Play a new note only if it's changed and enough time has passed
+//     if (
+//     noteIdx !== fingerLastNoteIndex[tipIndex] &&
+//     (now - fingerLastTriggerTime[tipIndex]) > minNoteInterval
+//     ) {
+//         const note = fingerScale[noteIdx];
+//         synth.triggerAttackRelease(note, "8n", now);
+//         fingerLastNoteIndex[tipIndex] = noteIdx;
+//         fingerLastTriggerTime[tipIndex] = now;
+//     }
+// }
+
+// function handleFingertipMusic(fingertip, tipIndex, fingerArrayIndex) {
+//     const now = Tone.now();
+
+//     // Each finger gets a subrange of bigScale. 
+//     const notesPerFinger = currentDensity; // Dynamically adjust based on sound density
+//     const startIndex = fingerArrayIndex * notesPerFinger;
+//     let endIndex = startIndex + notesPerFinger - 1;
+    
+//     if (endIndex >= bigScale.length) {
+//         endIndex = bigScale.length - 1;
+//     }
+//     const fingerScale = bigScale.slice(startIndex, endIndex + 1);
+
+//     // Map fingertip.x [0..1] -> index in fingerScale
+//     let noteIdx = Math.floor(fingertip.x * fingerScale.length);
+//     if (noteIdx < 0) noteIdx = 0;
+//     if (noteIdx >= fingerScale.length) noteIdx = fingerScale.length - 1;
+
+//     // Play a new note only if it's changed and enough time has passed
+//     if (
+//     noteIdx !== fingerLastNoteIndex[tipIndex] &&
+//     (now - fingerLastTriggerTime[tipIndex]) > minNoteInterval
+//     ) {
+//         const note = fingerScale[noteIdx];
+
+//         // Add a small offset to the start time to ensure it is strictly greater
+//         const adjustedStartTime = now + 0.1;  // Add a small offset
+
+//         synth.triggerAttackRelease(note, "8n", adjustedStartTime);
+//         fingerLastNoteIndex[tipIndex] = noteIdx;
+//         fingerLastTriggerTime[tipIndex] = adjustedStartTime;
+//     }
+// }
+
+async function handleFingertipMusic(fingertip, tipIndex, fingerArrayIndex) {
     const now = Tone.now();
 
     // Each finger gets a subrange of bigScale. 
-    // If we have 15 notes total and 3 fingers, each can have 5 notes.
-    const notesPerFinger = 5;
+    const notesPerFinger = currentDensity; // Dynamically adjust based on sound density
     const startIndex = fingerArrayIndex * notesPerFinger;
     let endIndex = startIndex + notesPerFinger - 1;
     
@@ -229,30 +295,52 @@ function handleFingertipMusic(fingertip, tipIndex, fingerArrayIndex) {
     if (noteIdx < 0) noteIdx = 0;
     if (noteIdx >= fingerScale.length) noteIdx = fingerScale.length - 1;
 
-    // Play a new note only if it's changed and enough time has passed
+    // Only play if the note has changed and enough time has passed
     if (
     noteIdx !== fingerLastNoteIndex[tipIndex] &&
     (now - fingerLastTriggerTime[tipIndex]) > minNoteInterval
     ) {
         const note = fingerScale[noteIdx];
-        synth.triggerAttackRelease(note, "8n", now);
+
+        // Wait for a short delay to ensure the timing is strictly greater
+        await waitForNextNote(tipIndex, now);
+
+        // Play the note
+        synth.triggerAttackRelease(note, "8n", Tone.now());  // Trigger at the current time (with a small offset)
+        
         fingerLastNoteIndex[tipIndex] = noteIdx;
-        fingerLastTriggerTime[tipIndex] = now;
+        fingerLastTriggerTime[tipIndex] = Tone.now();
     }
 }
 
-/**
- * Only draw the three fingertip landmarks [4, 8, 12].
+// Helper async function to introduce a slight delay
+async function waitForNextNote(tipIndex, lastTriggerTime) {
+    const now = Tone.now();
+    const timeDifference = now - lastTriggerTime;
+    
+    // If the last note was triggered too recently, wait a little while
+    if (timeDifference < minNoteInterval) {
+        const delayTime = minNoteInterval - timeDifference;
+        // Use a delay to ensure the next note is played at the right time
+        await new Promise(resolve => setTimeout(resolve, delayTime * 1000));  // Delay is in seconds, convert to ms
+    }
+}
+
+
+/*
+ * Only draw the fingertips based on the current soundDensity.
  */
 function drawSelectedFingertips(landmarks) {
-    for (const tipIndex of fingerTipIndices) {
+    // Loop through the number of fingertips to draw, based on the current sound density
+    for (let i = 0; i < Math.min(currentDensity, fingerTipIndices.length); i++) {
+        const tipIndex = fingerTipIndices[i];
         const point = landmarks[tipIndex];
         if (point) {
             canvasCtx.beginPath();
             canvasCtx.arc(
-            point.x * canvasElement.width,
-            point.y * canvasElement.height,
-            5, 0, 2 * Math.PI
+                point.x * canvasElement.width,
+                point.y * canvasElement.height,
+                5, 0, 2 * Math.PI
             );
             canvasCtx.fillStyle = "#FF0000";
             canvasCtx.fill();
