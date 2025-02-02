@@ -1,32 +1,19 @@
-<!-- Copyright 2023 The MediaPipe Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License. -->
 <!DOCTYPE html>
-
+<html>
 <head>
-  <title>Hand landmark detection using MediaPipe</title>
-  <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
-    <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    <script type="module" src="script.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.23/dist/full.min.css" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <title>MediaPipe Hand Landmarker - 3 Fingers Only</title>
+  <!-- Include MediaPipe Tasks scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0"></script>
+
+  <!-- Include Tone.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/tone@14.8.34/build/Tone.min.js"></script>
+  <script src="script.js" type="module"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.23/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-
-
-
 <body>
+<!-- <<<<<<< HEAD -->
    
     <div id="liveView" class="h-screen videoView flex justify-center items-center">
       <div class="flex flex-col justify-center items-center">
@@ -56,4 +43,15 @@ limitations under the License. -->
       
       
     </div>
+</body>
+  <!-- </section> -->
+<!-- =======
+  <h1>3-Finger Hand Landmarker Demo</h1>
+  <section id="demos" class="invisible">
+    <button id="webcamButton">ENABLE PREDICTIONS</button><br />
+    <video id="webcam" autoplay playsinline style="display:none"></video><br />
+    <canvas id="output_canvas"></canvas>
   </section>
+</body>
+</html>
+>>>>>>> 7b269ebf9035a94e743593449e7bd2afd31681ca -->
