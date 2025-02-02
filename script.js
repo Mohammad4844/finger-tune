@@ -123,3 +123,11 @@ async function predictWebcam() {
         window.requestAnimationFrame(predictWebcam);
     }
 }
+
+
+// MUSIC STYLE DROPDOWN
+const musicStyleDropdown = document.getElementById("music-style");
+musicStyleDropdown.addEventListener("change", () => {
+    const selectedStyle = musicStyleDropdown.value;
+    console.log("Selected Music Style:", selectedStyle);
+});
