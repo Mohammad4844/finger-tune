@@ -87,6 +87,12 @@ const easyButton = document.getElementById('easyButton');
 const mediumButton = document.getElementById('mediumButton');
 const hardButton = document.getElementById('hardButton');
 
+const SOUND_EFFECTS = {
+    hit: new Audio('music/dance_off/HitSound.mp3'),  // Your hit sound file
+    combo3: new Audio('music/dance_off/3StreakSound.wav'),  // Sound for 3x combo
+    combo5: new Audio('music/dance_off/5StreakSound.wav')   // Sound for 5x+ combo
+};
+
 // Add event listeners for difficulty buttons
 if (easyButton && mediumButton && hardButton) {
     easyButton.addEventListener('click', () => setDifficulty('easy'));
@@ -282,17 +288,50 @@ function startGame() {
     }, 1000);
 }
 
-// Fixed initializeGame function
-function initializeGame(settings) {
+// Sound effect synthesizers
+let hitSynth;
+let comboSynth;
+
+// Initialize sound effects when the game starts
+function initializeAudio() {
+    if (!audioStarted) {
+        try {
+            // Set volume for all sound effects
+            Object.values(SOUND_EFFECTS).forEach(sound => {
+                sound.volume = 0.5; // Adjust volume as needed (0.0 to 1.0)
+            });
+            
+            audioStarted = true;
+            debugLog('Audio', 'Sound effects initialized');
+        } catch (error) {
+            debugLog('Error', 'Failed to initialize sound effects:', error);
+        }
+    }
+}
+
+// Play a sound effect with restart capability
+function playSound(soundType) {
+    const sound = SOUND_EFFECTS[soundType];
+    if (sound) {
+        // Reset the sound to start if it's already playing
+        sound.currentTime = 0;
+        sound.play().catch(error => {
+            debugLog('Error', `Failed to play ${soundType} sound:`, error);
+        });
+    }
+}
+
+// InitializeGame function
+async function initializeGame(settings) {
     debugLog('Game', 'Initializing game with settings:', settings);
     
-    // Clear any existing state
+    // Clear existing state
     if (squareSpawnInterval) {
         clearInterval(squareSpawnInterval);
     }
     if (bgMusic) {
-        bgMusic.stop();
-        Tone.Transport.stop();
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
     }
 
     gameActive = true;
@@ -300,14 +339,12 @@ function initializeGame(settings) {
     squares = [];
     startGameButton.innerText = "Stop Game";
 
-    // Initialize audio context if needed
+    // Initialize audio system first
     if (!audioStarted) {
-        try {
-            Tone.start();
-            audioStarted = true;
-            debugLog('Audio', 'Audio context initialized');
-        } catch (error) {
-            debugLog('Error', 'Failed to initialize audio:', error);
+        const audioInitialized = await initializeAudio();
+        if (!audioInitialized) {
+            debugLog('Error', 'Failed to initialize audio system');
+            return;
         }
     }
 
@@ -319,15 +356,7 @@ function initializeGame(settings) {
         debugLog('Error', 'Failed to start background music:', error);
     }
 
-    // Start background music
-    try {
-        startBackgroundMusic(settings.music);
-        debugLog('Audio', 'Background music started');
-    } catch (error) {
-        debugLog('Error', 'Failed to start background music:', error);
-    }
-
-    // Start spawning squares with proper settings
+    // Start spawning squares
     squareSpawnInterval = setInterval(() => {
         if (gameActive) {
             spawnSquare(settings.squareSize);
@@ -337,7 +366,8 @@ function initializeGame(settings) {
     debugLog('Game', 'Game initialization complete');
 }
 
-// Update spawnSquare to use settings properly
+
+// Update spawnSquare to include more interesting velocities
 function spawnSquare(sizeSettings) {
     if (!canvasElement) {
         debugLog('Error', 'Canvas not found during square spawn');
@@ -356,17 +386,17 @@ function spawnSquare(sizeSettings) {
         size,
         spawnTime: performance.now(),
         color: SQUARE_COLORS[colorIndex],
-        velocityX: 0, // default 0
-        velocityY: 0  // default 0
+        velocityX: 0,
+        velocityY: 0
     };
-    // If we're on hard difficulty, give a random velocity
-  if (currentDifficulty === 'hard') {
-    // For example, random velocity in range [-2, 2]
-    const randomVelX = (Math.random() * 4) - 2; 
-    const randomVelY = (Math.random() * 4) - 2; 
-    newSquare.velocityX = randomVelX;
-    newSquare.velocityY = randomVelY;
-  }
+
+    // Add velocity for hard mode with more interesting patterns
+    if (currentDifficulty === 'hard') {
+        const speed = 2 + Math.random() * 2; // Random speed between 2 and 4
+        const angle = Math.random() * Math.PI * 2; // Random angle in radians
+        newSquare.velocityX = Math.cos(angle) * speed;
+        newSquare.velocityY = Math.sin(angle) * speed;
+    }
 
     squares.push(newSquare);
     debugLog('Game', 'Spawned square:', newSquare);
@@ -482,51 +512,67 @@ async function predictWebcam() {
 function updateSquares(fingertips) {
     const now = performance.now();
     const remainingSquares = [];
-  
+
     for (const square of squares) {
-      // Move squares if in hard mode, check lifetime, etc.
-      // (existing code)...
-  
-      let touched = false;
-      for (const tip of fingertips) {
-        if (isFingerTouchingSquare(tip, square)) {
-          touched = true;
-          break;
+        // Apply movement in hard mode
+        if (currentDifficulty === 'hard') {
+            square.x += square.velocityX;
+            square.y += square.velocityY;
+
+            if (square.x <= 0 || square.x + square.size >= canvasElement.width) {
+                square.velocityX *= -1;
+                square.x = Math.max(0, Math.min(square.x, canvasElement.width - square.size));
+            }
+            if (square.y <= 0 || square.y + square.size >= canvasElement.height) {
+                square.velocityY *= -1;
+                square.y = Math.max(0, Math.min(square.y, canvasElement.height - square.size));
+            }
         }
-      }
-  
-      if (touched) {
-        // INCREMENT COMBO
-        comboCount++;
-  
-        // If combo hits 3 exactly or is a multiple of 5 after 3
-        // e.g. 3, 5, 10, 15...
-        if (comboCount === 3 || (comboCount >= 5 && comboCount % 5 === 0)) {
-          comboMessage = comboCount + " COMBO!";
-          showCombo = true;
-          comboStartTime = now;
+
+        let touched = false;
+        for (const tip of fingertips) {
+            if (isFingerTouchingSquare(tip, square)) {
+                touched = true;
+                break;
+            }
         }
-        score++;
-        debugLog('Game', `Square touched! Score: ${score}`);
-      } else {
-        // Square not touched -> check if it expired => that counts as a "miss"
-        const age = now - square.spawnTime;
-        const settings = DIFFICULTY_SETTINGS[currentDifficulty];
-        const lifetime = settings ? settings.squareLifetime : SQUARE_LIFETIME;
-        if (age > lifetime) {
-          // A MISS occurs
-          comboCount = 0;
-          showCombo = false; // hide any combo if we miss
-          debugLog('Game', 'Square expired (miss)');
+
+        if (touched) {
+            // Play hit sound
+            playSound('hit');
+
+            comboCount++;
+            if (comboCount === 3) {
+                // Play 3x combo sound
+                playSound('combo3');
+                comboMessage = "3 COMBO!";
+                showCombo = true;
+                comboStartTime = now;
+            } else if (comboCount >= 5 && comboCount % 5 === 0) {
+                // Play 5x+ combo sound
+                playSound('combo5');
+                comboMessage = comboCount + " COMBO!";
+                showCombo = true;
+                comboStartTime = now;
+            }
+            
+            score++;
+            debugLog('Game', `Square touched! Score: ${score}`);
         } else {
-          remainingSquares.push(square);
+            const age = now - square.spawnTime;
+            const settings = DIFFICULTY_SETTINGS[currentDifficulty];
+            const lifetime = settings ? settings.squareLifetime : SQUARE_LIFETIME;
+            if (age > lifetime) {
+                comboCount = 0;
+                showCombo = false;
+            } else {
+                remainingSquares.push(square);
+            }
         }
-      }
     }
-  
+
     squares = remainingSquares;
-  }
-  
+}
 
 function isFingerTouchingSquare(fingertip, square) {
     const tipX = fingertip.x * canvasElement.width;
