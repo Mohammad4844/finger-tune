@@ -15,13 +15,6 @@
 </head>
 <body class="bg-gray-900 text-white">
   <div id="liveView" class="h-screen videoView flex justify-center items-center">
-            <!-- New background video element -->
-            <video 
-            id="bgVideo"
-            class="absolute top-0 left-0 w-full h-full object-cover -z-10 hidden" 
-            muted 
-            loop
-          ></video>
     <div class="flex flex-col justify-center items-center">
       <h1 id="page-title" class="text-4xl font-bold mb-8">Hand Dance Off</h1>
       
@@ -29,7 +22,6 @@
         <button id="webcamButton" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-xl transition-colors">
           Enable Webcam
         </button>
-          <!-- Difficulty buttons -->
         <button id="easyButton" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-xl transition-colors">
           Easy
         </button>
@@ -47,31 +39,41 @@
         </button>
       </div>
 
-      <div class="relative w-[640px] h-[480px] bg-slate-800 rounded-lg overflow-hidden">
-      <!-- WEBCAM -->
-      <div id="demos" class="invisible">
-        <div class="w-[640px] h-[480px] bg-slate-800 rounded-lg overflow-hidden">
-          <div class="relative w-full h-full">
-            <video id="webcam" class="absolute top-0 left-0 w-full h-full object-cover" autoplay playsinline style="transform: scaleX(-1);"></video>
-            <canvas id="output_canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+      <!-- Main content area with GIFs -->
+      <div class="flex gap-4 items-center">
+        <!-- Left GIF -->
+        <div class="w-[320px] h-[480px] bg-slate-800 rounded-lg overflow-hidden">
+          <img 
+            id="leftGif" 
+            class="w-full h-full object-cover"
+            src="music/videos/LeftDancer.gif"
+            style="display: none;"
+          >
+        </div>
+
+        <!-- Center webcam area -->
+        <div class="relative w-[640px] h-[480px] bg-slate-800 rounded-lg overflow-hidden">
+          <!-- WEBCAM -->
+          <div id="demos" class="invisible">
+            <div class="w-full h-full">
+              <div class="relative w-full h-full">
+                <video id="webcam" class="absolute top-0 left-0 w-full h-full object-cover" autoplay playsinline style="transform: scaleX(-1);"></video>
+                <canvas id="output_canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Vid Background -->
-      <div class="relative w-full h-full">
-        <video
-          id="webcam"
-          class="absolute top-0 left-0 w-full h-full object-cover"
-          autoplay
-          playsinline
-        ></video>
-        <canvas
-          id="output_canvas"
-          class="absolute top-0 left-0 w-full h-full"
-        ></canvas>
+        <!-- Right GIF -->
+        <div class="w-[320px] h-[480px] bg-slate-800 rounded-lg overflow-hidden">
+          <img 
+            id="rightGif" 
+            class="w-full h-full object-cover"
+            src="music/videos/RightDancer.gif"
+            style="display: none;"
+          >
+        </div>
       </div>
-    </div>
 
       <!-- BOTTOM FEATURE OPTIONS -->
       <div class="mt-8 flex items-center gap-4">

@@ -194,6 +194,22 @@ function initializeTrails() {
 }
 initializeTrails();
 
+// Get GIF elements
+const leftGif = document.getElementById('leftGif');
+const rightGif = document.getElementById('rightGif');
+
+// Function to show GIFs
+function showGifs() {
+    leftGif.style.display = 'block';
+    rightGif.style.display = 'block';
+}
+
+// Function to hide GIFs
+function hideGifs() {
+    leftGif.style.display = 'none';
+    rightGif.style.display = 'none';
+}
+
 
 debugLog('DOM', 'Video and canvas elements initialized', {
     video: !!video,
@@ -346,7 +362,8 @@ function playSound(soundType) {
 }
 
 // InitializeGame function
-async function initializeGame(settings) {
+// Update initializeGame to handle videos
+function initializeGame(settings) {
     debugLog('Game', 'Initializing game with settings:', settings);
     
     // Clear existing state
@@ -363,14 +380,8 @@ async function initializeGame(settings) {
     squares = [];
     startGameButton.innerText = "Stop Game";
 
-    // Initialize audio system first
-    if (!audioStarted) {
-        const audioInitialized = await initializeAudio();
-        if (!audioInitialized) {
-            debugLog('Error', 'Failed to initialize audio system');
-            return;
-        }
-    }
+    // Initialize audio system
+    initializeAudio();
 
     // Start background music
     try {
@@ -387,6 +398,7 @@ async function initializeGame(settings) {
         }
     }, settings.spawnFrequency);
 
+    showGifs();
     debugLog('Game', 'Game initialization complete');
 }
 
@@ -435,10 +447,13 @@ function stopGame() {
     startGameButton.disabled = false;
     squares = [];
   
+    // Stop videos
+    hideGifs();
+    
     // Stop background music
     if (bgMusic) {
-      bgMusic.pause();
-      bgMusic.currentTime = 0;
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
     }
     
     if (squareSpawnInterval) {
@@ -807,4 +822,39 @@ function resetTrails() {
     fingerTipIndices.forEach(tipIndex => {
         fingerTrails[tipIndex] = [];
     });
+}
+
+// Video Functionality
+// Get video elements
+const leftVideo = document.getElementById('leftVideo');
+const rightVideo = document.getElementById('rightVideo');
+
+// Initialize video state
+let videosPlaying = false;
+
+// Function to start both videos
+function startVideos() {
+    if (!videosPlaying) {
+        Promise.all([
+            leftVideo.play().catch(e => console.error('Left video play failed:', e)),
+            rightVideo.play().catch(e => console.error('Right video play failed:', e))
+        ]).then(() => {
+            videosPlaying = true;
+            debugLog('Video', 'Side videos started playing');
+        }).catch(error => {
+            debugLog('Error', 'Failed to start videos:', error);
+        });
+    }
+}
+
+// Function to stop both videos
+function stopVideos() {
+    if (videosPlaying) {
+        leftVideo.pause();
+        rightVideo.pause();
+        leftVideo.currentTime = 0;
+        rightVideo.currentTime = 0;
+        videosPlaying = false;
+        debugLog('Video', 'Side videos stopped');
+    }
 }
