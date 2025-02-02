@@ -17,7 +17,43 @@
   <div id="liveView" class="h-screen videoView flex justify-center items-center">
     <div class="flex flex-col justify-center items-center">
       <h1 id="page-title" class="text-4xl mb-8">Finger Tune</h1>
-      
+      <div id="visualizer-container" class="w-full max-w-xl mb-4">
+        <div class="flex h-16 items-end justify-center gap-1">
+            <!-- Generate 32 bars -->
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+            <div class="visualizer-bar w-2 bg-blue-500 transition-all duration-100" style="height: 0%"></div>
+        </div>
+    </div>
       <!-- MUSIC STYLE OPTIONS -->
       <div id="side-menu" class="mb-2 flex gap-2 justify-center">
         <div id="music-style-dropdown" class="mb-2">
@@ -52,7 +88,7 @@
       <!-- WEBCAM -->
       <div class="w-[40rem] h-[30rem] bg-slate-200">
         <div style="position: relative;">
-          <video id="webcam" style="transform: scaleX(-1);" autoplay playsinline></video>
+          <video id="webcam" style="position: abso" autoplay playsinline></video>
           <canvas class="output_canvas" id="output_canvas" style="position: absolute; left: 0px; top: 0px;"></canvas>
         </div>
       </div>
