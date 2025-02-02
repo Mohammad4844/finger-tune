@@ -28,14 +28,32 @@ limitations under the License. -->
 
 <body>
    
-    <div id="liveView" class="videoView">
-      <button id="webcamButton" class="mdc-button mdc-button--raised">
-        <span class="mdc-button__ripple"></span>
-        <span class="mdc-button__label">ENABLE WEBCAM</span>
-      </button>
-      <div style="position: relative;">
-        <video id="webcam" style="position: abso" autoplay playsinline></video>
-        <canvas class="output_canvas" id="output_canvas" style="position: absolute; left: 0px; top: 0px;"></canvas>
+    <div id="liveView" class="h-screen videoView flex justify-center items-center">
+      <div class="flex flex-col justify-center items-center">
+        <!-- MUSIC STYLE OPTIONS -->
+        <div id="music-style-dropdown" class="mb-2">
+          <label for="music-style">Music Style:</label>
+          <select id="music-style" name="fruits">
+            <option value="rock">Rock</option>
+            <option value="country">Country</option>
+          </select>
+        </div>
+
+        <!-- WEBCAM -->
+        <div class="w-[40rem] h-[30rem] bg-slate-200">
+          <div style="position: relative;">
+            <video id="webcam" style="position: abso" autoplay playsinline></video>
+            <canvas class="output_canvas" id="output_canvas" style="position: absolute; left: 0px; top: 0px;"></canvas>
+          </div>
+        </div>
       </div>
+
+      <!-- SIDE MENU -->
+      <div id="side-menu" class="ml-2 flex flex-col gap-2 justify-center">
+        <button id="webcamButton" class="bg-blue-300 p-2 rounded-2xl">ENABLE WEBCAM</span></button>
+        <button class="bg-blue-300 p-2 rounded-2xl">Start</button>
+      </div>
+      
+      
     </div>
   </section>
